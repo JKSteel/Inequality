@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Why the rich keep getting richer</title>
+
+<!-- Social preview. -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://jksteel.github.io/Inequality/" />
+<meta property="og:title" content="Why the rich keep getting richer" />
+<meta property="og:description" content="An interactive model of wealth inequality: replay the same population twice, with the same individual luck, changing only how much is redistributed. Watch where the wealth goes." />
+<meta property="og:image" content="https://jksteel.github.io/Inequality/preview.png" />
+<meta property="og:image:width" content="1066" />
+<meta property="og:image:height" content="576" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Why the rich keep getting richer" />
+<meta name="twitter:description" content="An interactive model of wealth inequality: replay the same population twice, with the same individual luck, changing only how much is redistributed. Watch where the wealth goes." />
+<meta name="twitter:image" content="https://jksteel.github.io/Inequality/preview.png" />
+
+<meta name="description" content="An interactive Bouchaud-Mézard model of wealth inequality: replay the same population twice with the same individual luck, changing only how much is redistributed." />
+
+<!--
+  A self-contained visualisation of the Bouchaud-Mezard model: how compounding wealth, affected by volatility (luck), spreads throughout a population.
+  Side by side visualation of the wealth evolution under strong vs. weak redistribution. The two panels show the same households operating withing the same economy and affected by the same run of luck - only the redistribution rate J differs.
+-->
+
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --ink: #1f2733;
+    --muted: #66707d;
+    --line: #e3e7ec;
+    --high: #2f9e8f;   /* strong-redistribution */
+    --low:  #e08a2e;   /* weak-redistribution */
+    --top1: #c0392b;   /* top-1% highlight */
+    --base: #cdd3da;   /* everyone outside the top 10% */
+    --shadow: 0 1px 3px rgba(20,30,45,.06), 0 6px 20px rgba(20,30,45,.05);
+    font-synthesis: none;
+  }
+
+  /* math variables */
+  var { font-style: italic; }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 28px 20px 56px; }
+
+  header h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
+  header p  { color: var(--muted); margin: 0 0 22px; }
+
+  /* ---- controls bar ---- */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 18px; box-shadow: var(--shadow);
+    margin-bottom: 22px;
+  }
+  .controls .group { display: flex; align-items: center; gap: 8px; }
+  .controls label { color: var(--muted); font-size: 13px; }
+
+  button {
+    font: inherit; cursor: pointer; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); border-radius: 8px;
+    padding: 7px 14px; transition: background .12s, border-color .12s;
+  }
+  button:hover { background: #f0f2f5; }
+  button.primary { background: var(--ink); color: #fff; border-color: var(--ink); min-width: 86px; }
+  button.primary:hover { background: #333d4c; }
+
+  select {
+    font: inherit; padding: 6px 8px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fff; color: var(--ink);
+  }
+
+  input[type=range] { width: 220px; accent-color: var(--ink); cursor: pointer; }
+  .year-readout { font-variant-numeric: tabular-nums; min-width: 86px; font-weight: 600; }
+
+  /* ---- top row: assumptions box (left) + key box (right), aligned with panels below ---- */
+  .toprow {
+    display: grid; grid-template-columns: 268px 1fr; gap: 18px; margin-bottom: 18px;
+  }
+
+  .params, .keybox {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; box-shadow: var(--shadow); margin: 0;
+  }
+  .params .grid {
+    display: grid; grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .params .slider label { display: flex; justify-content: space-between; font-size: 13px;
+                          color: var(--muted); margin-bottom: 3px; gap: 10px; }
+  .params .slider label b { color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .params .slider input { width: 100%; accent-color: var(--ink); cursor: pointer; }
+  .params .head { display: flex; justify-content: space-between; align-items: baseline;
+                  margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+  .params .head .threshold { font-size: 12.5px; color: var(--muted); }
+  .params .head .threshold b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  .keybox h3 { font-size: 14px; margin: 0 0 8px; }
+  .keybox dl { margin: 0; }
+  .keybox dt { font-weight: 600; color: var(--ink); margin-top: 9px; }
+  .keybox dt .sym { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+                    font-style: italic; color: var(--ink); margin-right: 4px; }
+  .keybox dd { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+  .keybox dd b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .keybox .note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  .keybox .note b { color: var(--ink); }
+
+  /* ---- chart panels ---- */
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px 18px 18px; box-shadow: var(--shadow);
+  }
+  .panel h2 { font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .panel .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .panel .sub { color: var(--muted); font-size: 12.5px; margin: 2px 0 0; }
+
+  .rescale { font-size: 12px; color: var(--muted); display: flex; align-items: center;
+             gap: 6px; margin: 8px 0 2px; min-height: 18px; cursor: pointer; }
+  .rescale input { cursor: pointer; }
+
+  /* live stat row under each chart */
+  .stats { display: flex; gap: 18px; margin-top: 10px; flex-wrap: wrap; }
+  .stats .stat { font-size: 12px; color: var(--muted); line-height: 1.3; }
+  .stats .stat b { display: block; color: var(--ink); font-size: 17px; font-weight: 600;
+                   font-variant-numeric: tabular-nums; }
+
+  .bullets { margin: 14px 0 0; padding-left: 0; list-style: none; }
+  .bullets li { position: relative; padding-left: 20px; margin-bottom: 7px; }
+  .bullets li::before { content: "\25B8"; position: absolute; left: 2px; color: var(--high); }
+  .bullets li b { color: var(--ink); }
+  .cite { font-size: 12px; }
+
+  canvas { width: 100%; display: block; }
+
+  footer.notes {
+    margin-top: 26px; color: var(--muted); font-size: 12.5px;
+    border-top: 1px solid var(--line); padding-top: 16px;
+  }
+  footer.notes code { background: #eef1f4; padding: 1px 5px; border-radius: 4px; }
+
+  @media (max-width: 720px) {
+    .toprow, .panels { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Why the rich keep getting richer</h1>
+    <p>Picture a population of households, each starting with a different amount of wealth and sharing one economy. Every household has its own run of good and bad luck over time. Now replay that exact population twice under near-identical conditions &mdash; the same households with the same starting wealth and the same run of luck &mdash; changing one thing only: how much wealth is redistributed each year. What do you think happens?</p>
+  </header>
+
+  <div class="toprow">
+    <div class="params">
+      <div class="head">
+        <strong>Model assumptions</strong>
+        <span class="threshold" id="threshold"></span>
+      </div>
+      <div class="grid">
+        <div class="slider">
+          <label for="sGrowth"><span><var>m</var>, economic growth</span> <b id="vGrowth">2%/yr</b></label>
+          <input id="sGrowth" type="range" min="0" max="10" step="0.1" value="2" />
+        </div>
+        <div class="slider">
+          <label for="sVol"><span><var>&sigma;</var>, volatility (luck)</span> <b id="vVol">20%</b></label>
+          <input id="sVol" type="range" min="5" max="50" step="1" value="20" />
+        </div>
+        <div class="slider">
+          <label for="sJHigh"><span><var>J</var><sub>high</sub>,<br>redistribution (left)</span> <b id="vJHigh"></b></label>
+          <input id="sJHigh" type="range" min="0" max="15" step="0.1" value="4" />
+        </div>
+        <div class="slider">
+          <label for="sJLow"><span><var>J</var><sub>low</sub>,<br>redistribution (right)</span> <b id="vJLow"></b></label>
+          <input id="sJLow" type="range" min="0" max="15" step="0.1" value="2" />
+        </div>
+        <div class="slider">
+          <label for="sYears"><span>Years to simulate</span> <b id="vYears"></b></label>
+          <input id="sYears" type="range" min="10" max="250" step="5" value="100" />
+        </div>
+        <div class="slider">
+          <label for="sPeople"><span>Number of households</span> <b id="vPeople"></b></label>
+          <input id="sPeople" type="range" min="50" max="10000" step="50" value="1500" />
+        </div>
+      </div>
+      <div style="margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <button id="reset">&#8634; Reset to defaults</button>
+        <label style="font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="realWorld" /> Include additional real-world approximations
+        </label>
+      </div>
+    </div>
+
+    <div class="keybox">
+      <h3>Key (what the variables mean and where the numbers come from)</h3>
+      <dl>
+        <dt><span class="sym"><var>m</var></span>, economic growth</dt>
+        <dd>Wealth growth rate per year. For developed countries, <b>2%/yr</b> is roughly the long-run growth in real GDP per person. Both panels use the same <var>m</var>; redistribution rate doesn't affect growth rate, which is well supported by the historical record <a href="https://www.congress.gov/crs-product/R42111" target="_blank">[1]</a>.</dd>
+        <dt><span class="sym"><var>&sigma;</var></span>, volatility (luck)</dt>
+        <dd>How much the returns vary from year to year. This is the part of a household's outcome that's luck, not skill. Calvet, Campbell, &amp; Sodini (2007) <a href="https://doi.org/10.1086/524204" target="_blank">[2]</a> tracked every Swedish household's portfolio and found a volatility of <b>20%</b>. Intelligence and hard work can lift your <em>average</em> return, but neither change the variance.</dd>
+        <dt><span class="sym"><var>J</var></span>, redistribution</dt>
+        <dd>How much wealth is moved each year from those above average wealth to those below it, through taxes, transfers, public spending, and the like. Note that <var>J</var> is <em>not</em> itself a tax rate.</dd>
+      </dl>
+      <p class="note"><b>In practice, <var>J</var> is a dependent variable.</b> The model's long-run shape follows a Pareto distribution with exponent <b><var>&mu;</var> = 1 + <var>J</var>/<var>&sigma;</var><sup>2</sup></b>, where <var>&mu;</var> and <var>&sigma;</var> are empirically measured. Today, <var>&mu;</var> has been measured to be approximately 1.5 <a href="https://doi.org/10.1111/roiw.12279" target="_blank">[3]</a>, while <var>&mu;</var> of the "golden age" (1950s-70s) was around 2.0 <a href="https://arxiv.org/abs/2206.04257" target="_blank">[4]</a>. These values of <var>&mu;</var> imply <var>J</var> values of approximately 2% today and 4% in the mid-century.</p>
+      <p class="note"><b>There is a critical <var>J</var> value above which the wealth distribution stabilises and below which it keeps concentrating at the top.</b> This critical point depends solely on the volatility, which with the empirical value above gives <var>J</var><sub>c</sub> = 4%. Today, we sit below this point (<var>J</var> &lt; <var>&sigma;</var><sup>2</sup>); the mid-century is roughly at the threshold.</p>
+      <p class="note"><b>"Typical" means the median household,</b> not the average/mean, which the very rich skew upward.</p>
+      <p class="note"><b>Why the two economy sizes (pies) differ.</b> Redistribution shuffles wealth around, it doesn't make or destroy any by itself. However, the two pies can slowly drift apart because growth is multiplicative: once a few hold most of it, the whole economy's growth rides on them, including their luck, and the extra volatility drags the pie down a touch compared with the more equal one.</p>
+      <p class="note"><b>Real-world approximation.</b> Adds wealth-dependent returns: richer households earn higher returns of approximately 2.8 percentage points more per year per order of magnitude of wealth <a href="https://doi.org/10.3982/ECTA14835" target="_blank">[5]</a>. This is modelled as a <em>pure transfer</em>: total wealth is conserved each step, so what the wealthy gain in dollar terms comes directly out of everyone else's pockets, not from new growth. This is the most conservative framing possible and is motivated by Rognlie (2016) <a href="https://doi.org/10.1353/eca.2016.0002" target="_blank">[6]</a> (the entire rise in net capital income since 1948 is from housing/land, inherently zero-sum) and Stiglitz (2012) [7] (excess returns reflect rent-seeking, not wealth creation).</p>
+      <p class="note"><b>If simulating the model beyond a normal lifetime</b>, read each household as a family line and the wealth as inherited.</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="group">
+      <button id="play" class="primary">&#9654; Play</button>
+    </div>
+    <div class="group" style="flex:1; min-width:280px;">
+      <input id="scrub" type="range" min="0" max="50" value="0" step="1" style="flex:1" />
+      <span class="year-readout" id="yearLabel">Year 0</span>
+    </div>
+    <div class="group">
+      <label for="view">View</label>
+      <select id="view">
+        <option value="bars">Bars</option>
+        <option value="pie">Overall pie vs. typical household</option>
+        <option value="trajectories">Individual trajectories</option>
+        <option value="inequality">Inequality trend</option>
+      </select>
+    </div>
+    <div class="group">
+      <input type="checkbox" id="logScale" />
+      <label for="logScale">Log y-scale</label>
+    </div>
+    <div class="group">
+      <button id="reseed">&#127922; New sample</button>
+    </div>
+  </div>
+
+  <div class="panels" id="panels">
+    <div class="panel" id="panelHigh">
+      <h2><span class="swatch" style="background:var(--high)"></span> Wealth redistributed</h2>
+      <div class="sub">Strong redistribution like the 1950s-70s</div>
+      <label class="rescale"><input type="checkbox" id="rescale" /> Rescale y-axis to this panel's maximum</label>
+      <canvas id="canvasHigh"></canvas>
+      <div class="stats">
+        <div class="stat">Top 10% own<b id="statHigh">&mdash;</b></div>
+        <div class="stat">Top 1% own<b id="stat1High">&mdash;</b></div>
+        <div class="stat">Whole economy<b id="totHigh">&mdash;</b></div>
+        <div class="stat">Richest vs. median<b id="dispHigh">&mdash;</b></div>
+      </div>
+    </div>
+    <div class="panel" id="panelLow">
+      <h2><span class="swatch" style="background:var(--low)"></span> Wealth concentrated</h2>
+      <div class="sub">Weak redistribution like today</div>
+      <div class="rescale" style="visibility:hidden">spacer</div>
+      <canvas id="canvasLow"></canvas>
+      <div class="stats">
+        <div class="stat">Top 10% own<b id="statLow">&mdash;</b></div>
+        <div class="stat">Top 1% own<b id="stat1Low">&mdash;</b></div>
+        <div class="stat">Whole economy<b id="totLow">&mdash;</b></div>
+        <div class="stat">Richest vs. median<b id="dispLow">&mdash;</b></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="notes">
+    <p><strong>What this is.</strong> The <em>Bouchaud-;M&eacute;zard</em> model <a href="https://doi.org/10.1016/S0378-4371(00)00205-3" target="_blank">[8]</a> is a physics-of-economics (econophysics) model about what happens to wealth when it compounds and is subject to volatility (i.e. luck). Both panels follow the same households in the same economy, with each household dealt the same run of luck in both. The only difference between them is <var>J</var>: how much wealth gets redistributed each year.</p>
+    <ul class="bullets">
+      <li><b>Mechanism.</b> Wealth compounds equally for every household, but each year's growth carries a random element from volatility — some good years, some bad. Because that growth applies to what you already own, a bigger pile means a bigger swing, and lucky streaks snowball.</li>
+      <li><b>Result.</b> Leave the system alone and wealth inequality increases; a smaller and smaller group ends up with almost everything. Redistribute as much as the mid-century did and it holds at a far healthier spread instead. That era sat right on the critical line <var>J</var> = <var>&sigma;</var><sup>2</sup> (the boundary below which wealth runs away to the top) so even "strong" redistribution here is only just enough to hold the line, not comfortably past it.</li>
+      <li><b>Takeaway.</b> Redistribution of wealth doesn't shrink the economy, as historical data has shown. Both systems grow overall, and the low-redistribution side grows no faster than the high-redistribution side (if anything it's usually a bit slower). What changes is <em>who gets the growth</em>. The value of the whole economy pulls away from the typical household: the pie grows, the median gets left behind. This is because most wealth is funnelled to the top.</li>
+    </ul>
+    <p class="cite">References:
+      <br>[1] T. S. Hungerford, "Taxes and the Economy: An Economic Analysis of the Top Tax Rates Since 1945," Congressional Research Service, Rep. R42111, 2012. [Online]. Available: <a href="https://www.congress.gov/crs-product/R42111" target="_blank">congress.gov/crs-product/R42111</a>
+      <br>[2] L. E. Calvet, J. Y. Campbell, and P. Sodini, "Down or Out: Assessing the Welfare Costs of Household Investment Mistakes," <em>J. Polit. Econ.</em>, vol. 115, no. 5, pp. 707-747, 2007. doi: <a href="https://doi.org/10.1086/524204" target="_blank">10.1086/524204</a>
+      <br>[3] P. Vermeulen, "How Fat is the Top Tail of the Wealth Distribution?" <em>Rev. Income Wealth</em>, vol. 64, no. 2, pp. 357-387, 2018. doi: <a href="https://doi.org/10.1111/roiw.12279" target="_blank">10.1111/roiw.12279</a>
+      <br>[4] J. H. Lee, Y. Sasaki, A. A. Toda, and Y. Wang, "Capital and Labor Income Pareto Exponents in the United States, 1916-2019," arXiv:2206.04257, 2022. [Online]. Available: <a href="https://arxiv.org/abs/2206.04257" target="_blank">arxiv.org/abs/2206.04257</a>
+      <br>[5] A. Fagereng, L. Guiso, D. Malacrino, and L. Pistaferri, "Heterogeneity and Persistence in Returns to Wealth," <em>Econometrica</em>, vol. 88, no. 1, pp. 115-170, 2020. doi: <a href="https://doi.org/10.3982/ECTA14835" target="_blank">10.3982/ECTA14835</a>
+      <br>[6] M. Rognlie, "Deciphering the Fall and Rise in the Net Capital Share: Accumulation or Scarcity?" <em>Brookings Pap. Econ. Activity</em>, vol. 2015, no. 1, pp. 1-69, 2016. doi: <a href="https://doi.org/10.1353/eca.2016.0002" target="_blank">10.1353/eca.2016.0002</a>
+      <br>[7] J. E. Stiglitz, "Rent Seeking and the Making of an Unequal Society," in <em>The Price of Inequality: How Today's Divided Society Endangers Our Future</em>, New York: W. W. Norton, 2012, ch. 2.
+      <br>[8] J.-P. Bouchaud and M. M&eacute;zard, "Wealth condensation in a simple model of economy," <em>Physica A</em>, vol. 282, pp. 536-545, 2000. doi: <a href="https://doi.org/10.1016/S0378-4371(00)00205-3" target="_blank">10.1016/S0378-4371(00)00205-3</a>
+    </p>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   RNG seed for reproducible randomness so both regimes run on the same population and the same luck.
+   ============================================================ */
+const Rng = {
+  make(seed) {
+    let a = seed >>> 0;
+    const uniform = () => {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    return {
+      uniform,
+      normal() {
+        let u = 0, v = 0;
+        while (u === 0) u = uniform();
+        while (v === 0) v = uniform();
+        return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      },
+      lognormal(median, sigma) { return median * Math.exp(sigma * this.normal()); }
+    };
+  }
+};
+
+/* Build a population once; both regimes share it for a fair comparison. */
+function makePopulation(n, seed) {
+  const rng = Rng.make(seed);
+  const people = [];
+  for (let i = 0; i < n; i++) {
+    people.push({ wealth0: rng.lognormal(20000, 0.55) });   // initial spread
+  }
+  return { people, seed };
+}
+
+/* ============================================================
+   Bouchaud-Mezard: random multiplicative growth with redistribution.
+
+   Each household's wealth grows at a random rate each step: mean m, with volatility sigma (good years and bad). Because growth is multiplicative, luck compounds. A redistribution term J pulls everyone toward the average (the policy lever(s) / taxation; it is a pure transfer, conserving total wealth).
+
+   Key result: a threshold J_c = sigma^2. Below J_c the wealth distribution diverges, i.e. a vanishing fraction hold almost everything. Above J_c you get a stable, realistic power-law (Pareto) distribution.
+   ============================================================ */
+const BouchaudMezard = {
+  substeps: 12,  // sub-steps per year for numerical stability
+
+  // Default values (taken from published literature). m and sigma are directly empirical; J is calculated from the model's own stationary law mu = 1 + J/sigma^2, using the measured wealth-tail exponent mu.
+  defaults: { m: 0.02, sigma: 0.20, jHigh: 0.04, jLow: 0.02 },
+
+  // Return premium coefficient: ~2.8pp extra return per decade of wealth, i.e. per unit of log10(w). In natural-log terms: delta = 2.8% / ln(10) = 1.2% per unit of ln(w/mean).
+  returnPremiumDelta: 0.012,
+
+  run({ population, regime, years, params, realWorld }) {
+    const { people } = population;
+    const n = people.length;
+    const J = regime === "high" ? params.jHigh : params.jLow;
+    const dt = 1 / this.substeps;
+    const sqrtDt = Math.sqrt(dt);
+    const delta = realWorld ? this.returnPremiumDelta : 0;
+    const noise = Rng.make(population.seed ^ 0x9e3779b9);  // Shared identical volatility (luck) across both regimes.
+
+    let wealth = people.map(p => p.wealth0);
+    const byYear = [wealth.slice()];
+
+    for (let t = 1; t <= years; t++) {
+      for (let s = 0; s < this.substeps; s++) {
+        const mean = wealth.reduce((a, b) => a + b, 0) / n;
+        wealth = wealth.map((w, i) => {
+          const growth  = w * (params.m * dt + params.sigma * sqrtDt * noise.normal());
+          const redistr = J * dt * (mean - w);
+          return Math.max(0, w + growth + redistr);
+        });
+        // Real-world approximation: wealth-dependent return premium (Fagereng et al. 2020). Implemented as a pure zero-sum transfer: premiums are centred on the wealth-weighted mean of log(w) so the sum of w_i*premium_i = 0 by construction. Excess returns to the wealthy come directly at the expense of others - rent-seeking and housing rents, not new wealth creation (Rognlie 2016 and Stiglitz 2012). A post-step rescale corrects for clamping at zero.
+        if (delta > 0) {
+          const logW = wealth.map(w => Math.log(Math.max(1, w)));
+          const totalW = wealth.reduce((a, b) => a + b, 0);
+          const wMeanLogW = wealth.reduce((s, w, i) => s + w * logW[i], 0) / totalW;
+          const premW = wealth.map((w, i) => Math.max(0, w + w * delta * (logW[i] - wMeanLogW) * dt));
+          const newTotal = premW.reduce((a, b) => a + b, 0);
+          const scale = newTotal > 0 ? totalW / newTotal : 1;
+          wealth = premW.map(w => w * scale);
+        }
+      }
+      byYear.push(wealth.slice());
+    }
+    return { byYear };
+  }
+};
+
+/* ============================================================
+   Stats for the distribution summaries.
+   ============================================================ */
+const Stats = {
+  median(wealth) {
+    const s = wealth.slice().sort((a, b) => a - b);
+    return s[Math.floor(s.length / 2)] || 0;
+  },
+  total(wealth) { return wealth.reduce((s, x) => s + x, 0); },
+  // Share of total wealth held by the richest fraction of the population.
+  topShare(wealth, frac) {
+    const total = wealth.reduce((s, x) => s + x, 0);
+    if (total <= 0) return 0;
+    const sorted = wealth.slice().sort((a, b) => b - a);
+    const k = Math.max(1, Math.round(wealth.length * frac));
+    let top = 0;
+    for (let i = 0; i < k; i++) top += sorted[i];
+    return top / total;
+  }
+};
+
+/* ============================================================
+   Format helpers.
+   ============================================================ */
+const fmt = {
+  money(v) {
+    if (v >= 1e12) return "$" + (v / 1e12).toFixed(1) + "tn";
+    if (v >= 1e9)  return "$" + (v / 1e9).toFixed(1) + "bn";
+    if (v >= 1e6)  return "$" + (v / 1e6).toFixed(1) + "m";
+    if (v >= 1e3)  return "$" + Math.round(v / 1e3) + "k";
+    return "$" + Math.round(v);
+  },
+  pct(x) { return Math.round(x * 100) + "%"; }
+};
+
+/* ============================================================
+   Chart canvas renderers. Each takes a context plus data and a shared scale, so both panels stay directly comparable.
+   ============================================================ */
+const Chart = {
+  TOP1: "",  // top-1% highlight (shared across panels) - set from CSS in App.init
+  BASE: "",  // everyone outside the top 10% - set from CSS in App.init
+
+  prep(canvas, cssHeight) {
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = canvas.clientWidth;
+    canvas.height = cssHeight * dpr;
+    canvas.width = cssWidth * dpr;
+    canvas.style.height = cssHeight + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    return { ctx, w: cssWidth, h: cssHeight };
+  },
+
+  // Y-axis mapping for the wealth views. Returns frac(value)->0..1 (bottom..top) plus the gridline ticks. Linear xy-axes or log y-axis when 'log' is set. minVal is only used for log mode: both panels share the same floor so values in the less-concentrated panel are never clipped by the more-concentrated panel's floor.
+  yScale(minVal, maxVal, log) {
+    if (log) {
+      const hi = Math.pow(10, Math.ceil(Math.log10(maxVal)));
+      const lo = Math.pow(10, Math.floor(Math.log10(Math.max(1, minVal))));
+      const llo = Math.log10(lo), span = Math.log10(hi) - llo || 1;
+      const frac = v => v <= lo ? 0 : Math.min(1, (Math.log10(v) - llo) / span);
+      const ticks = [];
+      for (let e = llo; e <= llo + span + 1e-9; e++) ticks.push({ v: Math.pow(10, e), frac: (e - llo) / span });
+      return { frac, ticks };
+    }
+    const frac = v => v / maxVal;
+    const ticks = [];
+    for (let i = 0; i <= 4; i++) ticks.push({ v: maxVal * (i / 4), frac: i / 4 });
+    return { frac, ticks };
+  },
+
+  grid(ctx, w, h, pad, scale) {
+    ctx.strokeStyle = "#eef1f4";
+    ctx.fillStyle = "#9aa3ad";
+    ctx.font = "11px system-ui, sans-serif";
+    ctx.lineWidth = 1;
+    const plotH = h - pad.top - pad.bottom;
+    for (const tk of scale.ticks) {
+      const y = pad.top + plotH * (1 - tk.frac);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+      ctx.fillText(fmt.money(tk.v), 4, y - 3);
+    }
+  },
+
+  // Horizontal dashed marker for the typical (median) household.
+  medianMarker(ctx, w, pad, plotH, medVal, scale) {
+    const y = pad.top + plotH * (1 - Math.min(1, Math.max(0, scale.frac(medVal))));
+    ctx.save();
+    ctx.strokeStyle = "#5b6470"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#5b6470"; ctx.font = "600 11px system-ui, sans-serif";
+    const ty = y < pad.top + 14 ? y + 13 : y - 4;
+    ctx.fillText("Typical (median) " + fmt.money(medVal), pad.left + 4, ty);
+    ctx.restore();
+  },
+
+  // Sorted ascending bars. Top 10% in the panel accent, top 1% in a shared red, everyone else muted grey.
+  bars(canvas, wealth, maxVal, minVal, accent, log) {
+    const { ctx, w, h } = this.prep(canvas, 320);
+    const pad = { top: 12, right: 8, bottom: 14, left: 46 };
+    const scale = this.yScale(minVal, maxVal, log);
+    this.grid(ctx, w, h, pad, scale);
+
+    const sorted = wealth.slice().sort((a, b) => a - b);
+    const n = sorted.length;
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+    const slot = plotW / n;
+    const barW = Math.max(1, slot * 0.8);
+
+    const k10 = Math.max(1, Math.round(n * 0.10));
+    const k1  = Math.max(1, Math.round(n * 0.01));
+
+    for (let i = 0; i < n; i++) {
+      ctx.fillStyle = i >= n - k1 ? this.TOP1 : i >= n - k10 ? accent : this.BASE;
+      const bh = Math.max(0, Math.min(1, scale.frac(sorted[i]))) * plotH;
+      const x = pad.left + i * slot + (slot - barW) / 2;
+      ctx.fillRect(x, pad.top + plotH - bh, barW, bh);
+    }
+
+    this.medianMarker(ctx, w, pad, plotH, Stats.median(wealth), scale);
+  },
+
+  // One faint line per household over time; top 10% and top 1% (by final wealth) highlighted in the panel accent and the shared red, respectively.
+  trajectories(canvas, byYear, uptoYear, maxVal, minVal, accent, log) {
+    const { ctx, w, h } = this.prep(canvas, 320);
+    const pad = { top: 12, right: 8, bottom: 14, left: 46 };
+    const scale = this.yScale(minVal, maxVal, log);
+    this.grid(ctx, w, h, pad, scale);
+
+    const n = byYear[0].length;
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+    const xAt = t => pad.left + plotW * (t / (byYear.length - 1));
+    const yAt = v => pad.top + plotH * (1 - Math.max(0, Math.min(1, scale.frac(v))));
+
+    const finalWealth = byYear[byYear.length - 1];
+    const desc = finalWealth.slice().sort((a, b) => b - a);
+    const cut10 = desc[Math.max(0, Math.round(n * 0.10) - 1)];
+    const cut1  = desc[Math.max(0, Math.round(n * 0.01) - 1)];
+
+    // With many households, drawing every faint line would slow the animation. Always draw the highlighted top lines; thin the rest to ~800 by sub-sampling.
+    const stride = Math.max(1, Math.floor(n / 800));
+    for (let p = 0; p < n; p++) {
+      const isTop1 = finalWealth[p] >= cut1;
+      const isTop10 = finalWealth[p] >= cut10;
+      if (!isTop10 && p % stride !== 0) continue;
+      ctx.strokeStyle = isTop1 ? this.TOP1 : isTop10 ? accent : "rgba(150,160,170,.30)";
+      ctx.lineWidth = isTop1 ? 1.8 : isTop10 ? 1.6 : 1;
+      ctx.beginPath();
+      for (let t = 0; t <= uptoYear; t++) {
+        const x = xAt(t), y = yAt(byYear[t][p]);
+        t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    this.medianMarker(ctx, w, pad, plotH, Stats.median(byYear[uptoYear]), scale);
+  },
+
+  // Combined trend: top-10% (solid) and top-1% (dashed) share over time, both regimes.
+  inequality(canvas, series, uptoYear, colors) {
+    const { ctx, w, h } = this.prep(canvas, 320);
+    const pad = { top: 16, right: 14, bottom: 28, left: 46 };
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+    const len = series.high.p10.length;
+    const xAt = t => pad.left + plotW * (t / (len - 1));
+    const yAt = v => pad.top + plotH * (1 - v);
+
+    ctx.strokeStyle = "#eef1f4"; ctx.fillStyle = "#9aa3ad";
+    ctx.font = "11px system-ui, sans-serif"; ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + plotH * (i / 4);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+      ctx.fillText((100 - i * 25) + "%", 8, y - 3);
+    }
+
+    const draw = (arr, color, dash) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 2.4; ctx.setLineDash(dash); ctx.beginPath();
+      for (let t = 0; t <= uptoYear; t++) {
+        const x = xAt(t), y = yAt(arr[t]);
+        t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke(); ctx.setLineDash([]);
+      const lx = xAt(uptoYear), ly = yAt(arr[uptoYear]);
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(lx, ly, 3, 0, 2 * Math.PI); ctx.fill();
+      ctx.font = "600 11px system-ui, sans-serif";
+      ctx.fillText(fmt.pct(arr[uptoYear]), lx - 36, ly - 7);
+    };
+    draw(series.high.p10, colors.high, []);
+    draw(series.high.p1,  colors.high, [5, 4]);
+    draw(series.low.p10,  colors.low,  []);
+    draw(series.low.p1,   colors.low,  [5, 4]);
+
+    ctx.fillStyle = "#66707d"; ctx.font = "11px system-ui, sans-serif";
+    ctx.fillText("solid = top 10%; dashed = top 1%", pad.left + 4, pad.top + 12);
+    ctx.fillText("Year", w - pad.right - 24, h - 8);
+  },
+
+  // Pie (total wealth) vs. the typical (median) household, each indexed to 100 at year 0. Shows the pie growing while the typical household is left behind.
+  pieVsTypical(canvas, byYear, uptoYear, maxIndex, color) {
+    const { ctx, w, h } = this.prep(canvas, 320);
+    const pad = { top: 14, right: 14, bottom: 22, left: 52 };
+    const plotW = w - pad.left - pad.right;
+    const plotH = h - pad.top - pad.bottom;
+
+    const tot0 = Stats.total(byYear[0]) || 1;
+    const med0 = Stats.median(byYear[0]) || 1;
+    const pieIdx = byYear.map(yr => Stats.total(yr) / tot0 * 100);
+    const medIdx = byYear.map(yr => Stats.median(yr) / med0 * 100);
+
+    const xAt = t => pad.left + plotW * (t / (byYear.length - 1));
+    const yAt = v => pad.top + plotH * (1 - v / maxIndex);
+
+    ctx.strokeStyle = "#eef1f4"; ctx.fillStyle = "#9aa3ad";
+    ctx.font = "11px system-ui, sans-serif"; ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + plotH * (i / 4);
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+      ctx.fillText("×" + (maxIndex / 100 * (1 - i / 4)).toFixed(1), 6, y - 3);
+    }
+
+    const line = (idx, stroke, dash) => {
+      ctx.strokeStyle = stroke; ctx.lineWidth = 2.4; ctx.setLineDash(dash);
+      ctx.beginPath();
+      for (let t = 0; t <= uptoYear; t++) {
+        const x = xAt(t), y = yAt(idx[t]);
+        t === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke(); ctx.setLineDash([]);
+    };
+    line(pieIdx, color, []);
+    line(medIdx, "#8a93a0", [5, 4]);
+
+    ctx.font = "600 12px system-ui, sans-serif";
+    ctx.fillStyle = color;     ctx.fillText("Whole economy ×" + (pieIdx[uptoYear] / 100).toFixed(1), pad.left + 6, pad.top + 14);
+    ctx.fillStyle = "#8a93a0"; ctx.fillText("Typical (median) household ×" + (medIdx[uptoYear] / 100).toFixed(1), pad.left + 6, pad.top + 32);
+  }
+};
+
+/* ============================================================
+   App: state, wiring, and animation loop.
+   ============================================================ */
+const App = {
+  defaults: { n: 1500, years: 100, params: { ...BouchaudMezard.defaults } },
+  cfg: { n: 1500, years: 100, view: "bars", seed: 12345, scaleLeftOwn: false, logScale: false, realWorld: false,
+         params: { ...BouchaudMezard.defaults } },
+  sims: null,
+  series: null,
+  scale: {},
+  year: 0,
+  playing: false,
+  lastTick: 0,
+
+  el: {},
+
+  init() {
+    const $ = id => document.getElementById(id);
+    this.el = {
+      play: $("play"), scrub: $("scrub"), yearLabel: $("yearLabel"),
+      view: $("view"), reseed: $("reseed"), reset: $("reset"), rescale: $("rescale"),
+      logScale: $("logScale"), realWorld: $("realWorld"),
+      threshold: $("threshold"),
+      sGrowth: $("sGrowth"), sVol: $("sVol"), sJHigh: $("sJHigh"), sJLow: $("sJLow"),
+      sYears: $("sYears"), sPeople: $("sPeople"),
+      vGrowth: $("vGrowth"), vVol: $("vVol"), vJHigh: $("vJHigh"), vJLow: $("vJLow"),
+      vYears: $("vYears"), vPeople: $("vPeople"),
+      canvasHigh: $("canvasHigh"), canvasLow: $("canvasLow"),
+      statHigh: $("statHigh"), statLow: $("statLow"),
+      stat1High: $("stat1High"), stat1Low: $("stat1Low"),
+      totHigh: $("totHigh"), totLow: $("totLow"),
+      dispHigh: $("dispHigh"), dispLow: $("dispLow"),
+    };
+
+    // Cache canvas colours once
+    this.cHigh = getCss("--high");
+    this.cLow  = getCss("--low");
+    Chart.TOP1 = getCss("--top1");
+    Chart.BASE = getCss("--base");
+
+    this.el.play.onclick = () => this.togglePlay();
+    this.el.scrub.oninput = e => { this.setYear(+e.target.value); this.pause(); };
+    this.el.view.onchange = e => { this.cfg.view = e.target.value; this.render(); };
+    this.el.reseed.onclick = () => { this.cfg.seed = (Math.random() * 1e9) | 0; this.recompute(); };
+    this.el.reset.onclick = () => this.resetParams();
+    this.el.rescale.onchange = e => { this.cfg.scaleLeftOwn = e.target.checked; this.render(); };
+    this.el.logScale.onchange   = e => { this.cfg.logScale   = e.target.checked; this.render(); };
+    this.el.realWorld.onchange  = e => { this.cfg.realWorld  = e.target.checked; this.recompute(); };
+
+    // Sliders: update the readout live on input and only recompute on release so dragging stays smooth.
+    const wire = (slider, onChange) => {
+      slider.oninput  = () => this.syncSliderLabels();
+      slider.onchange = onChange;
+    };
+    wire(this.el.sGrowth, () => { this.cfg.params.m     = +this.el.sGrowth.value / 100; this.recompute(); });
+    wire(this.el.sVol,    () => { this.cfg.params.sigma = +this.el.sVol.value / 100;    this.recompute(); });
+    wire(this.el.sJHigh,  () => { this.cfg.params.jHigh = +this.el.sJHigh.value / 100;  this.recompute(); });
+    wire(this.el.sJLow,   () => { this.cfg.params.jLow  = +this.el.sJLow.value / 100;   this.recompute(); });
+    wire(this.el.sYears,  () => { this.cfg.years        = +this.el.sYears.value;        this.recompute(); });
+    wire(this.el.sPeople, () => { this.cfg.n            = +this.el.sPeople.value;       this.recompute(); });
+
+    window.addEventListener("resize", () => this.render());
+
+    this.syncSliderLabels();
+    this.recompute();
+    requestAnimationFrame(t => this.tick(t));
+  },
+
+  resetParams() {
+    this.cfg.params = { ...this.defaults.params };
+    this.cfg.n = this.defaults.n;
+    this.cfg.years = this.defaults.years;
+    this.el.sGrowth.value = this.cfg.params.m * 100;
+    this.el.sVol.value    = this.cfg.params.sigma * 100;
+    this.el.sJHigh.value  = this.cfg.params.jHigh * 100;
+    this.el.sJLow.value   = this.cfg.params.jLow * 100;
+    this.el.sYears.value  = this.cfg.years;
+    this.el.sPeople.value = this.cfg.n;
+    this.syncSliderLabels();
+    this.recompute();
+  },
+
+  syncSliderLabels() {
+    const sig = +this.el.sVol.value / 100;
+    const jc = sig * sig;
+    const jHigh = +this.el.sJHigh.value / 100, jLow = +this.el.sJLow.value / 100;
+    // Implied Pareto tail exponent from the model: mu = 1 + J/sigma^2
+    const mu = j => (sig > 0 ? 1 + j / (sig * sig) : Infinity);
+
+    this.el.vGrowth.textContent = (+this.el.sGrowth.value).toFixed(1) + "%/yr";
+    this.el.vVol.textContent    = (+this.el.sVol.value) + "%";
+    this.el.vJHigh.textContent  = (+this.el.sJHigh.value).toFixed(1) + "%/yr (μ = " + mu(jHigh).toFixed(1) + ")";
+    this.el.vJLow.textContent   = (+this.el.sJLow.value).toFixed(1)  + "%/yr (μ = " + mu(jLow).toFixed(1) + ")";
+    this.el.vYears.textContent  = this.el.sYears.value;
+    this.el.vPeople.textContent = this.el.sPeople.value;
+
+    // Tipping point J_c = sigma^2
+    this.el.threshold.innerHTML =
+      `Tipping point (<var>&mu;</var> = 2): <var>J</var><sub>c</sub> = <var>&sigma;</var><sup>2</sup> = <b>${(jc * 100).toFixed(1)}%/yr</b>`;
+  },
+
+  recompute() {
+    const { n, seed, years, params } = this.cfg;
+    const pop = makePopulation(n, seed);
+    this.sims = {
+      high: BouchaudMezard.run({ population: pop, regime: "high", years, params, realWorld: this.cfg.realWorld }),
+      low:  BouchaudMezard.run({ population: pop, regime: "low",  years, params, realWorld: this.cfg.realWorld }),
+    };
+
+    const mk = byYear => ({
+      p10: byYear.map(w => Stats.topShare(w, 0.10)),
+      p1:  byYear.map(w => Stats.topShare(w, 0.01)),
+    });
+    this.series = { high: mk(this.sims.high.byYear), low: mk(this.sims.low.byYear) };
+
+    // Per-year shared max across both panels. Y-axis grows as the simulation proceeds.
+    this.scale.byYear = this.sims.high.byYear.map((yr, t) => {
+      let m = 0;
+      for (const v of yr)                      if (v > m) m = v;
+      for (const v of this.sims.low.byYear[t]) if (v > m) m = v;
+      return m * 1.05 || 1;
+    });
+
+    // Per-year shared log min (minimum non-zero wealth across both panels). Used so the log-scale floor is identical in both panels to prevents the left panel's low-wealth bars from being clipped by the right panel's higher floor.
+    this.scale.logMinByYear = this.sims.high.byYear.map((yr, t) => {
+      let m = Infinity;
+      for (const v of yr)                      if (v > 0 && v < m) m = v;
+      for (const v of this.sims.low.byYear[t]) if (v > 0 && v < m) m = v;
+      return m === Infinity ? 1 : m;
+    });
+    this.scale.logMinAll = this.scale.logMinByYear.reduce((a, b) => Math.min(a, b), Infinity) || 1;
+
+    // Shared max for the pie vs. typical view.
+    const tot0 = Stats.total(this.sims.high.byYear[0]) || 1;
+    let maxIdx = 100;
+    for (const key of ["high", "low"]) {
+      for (const yr of this.sims[key].byYear) {
+        const idx = Stats.total(yr) / tot0 * 100;
+        if (idx > maxIdx) maxIdx = idx;
+      }
+    }
+    this.scale.pieMaxIndex = maxIdx * 1.05;
+
+    this.el.scrub.max = years;
+    this.setYear(0);
+  },
+
+  togglePlay() {
+    if (this.year >= this.cfg.years) this.setYear(0);
+    this.playing ? this.pause() : this.playStart();
+  },
+  playStart() { this.playing = true; this.el.play.textContent = "❚❚ Pause"; },
+  pause()     { this.playing = false; this.el.play.textContent = "▶ Play"; },
+
+  setYear(y) {
+    this.year = Math.max(0, Math.min(this.cfg.years, Math.round(y)));
+    this.el.scrub.value = this.year;
+    const gen = Math.floor(this.year / 25);
+    this.el.yearLabel.textContent = this.year > 80
+      ? "Year " + this.year + " (gen " + (gen + 1) + ")"
+      : "Year " + this.year;
+    this.render();
+  },
+
+  tick(now) {
+    if (this.playing) {
+      if (!this.lastTick) this.lastTick = now;
+      if (now - this.lastTick > 140) {
+        this.lastTick = now;
+        if (this.year >= this.cfg.years) this.pause();
+        else this.setYear(this.year + 1);
+      }
+    } else {
+      this.lastTick = 0;
+    }
+    requestAnimationFrame(t => this.tick(t));
+  },
+
+  render() {
+    if (!this.sims) return;
+    const { view } = this.cfg;
+    const cHigh = this.cHigh, cLow = this.cLow;
+
+    const scaleNow = this.scale.byYear[this.year];
+
+    // Left panel can optionally use its own max.
+    let leftScale = scaleNow;
+    if (this.cfg.scaleLeftOwn) {
+      let m = 0;
+      for (const v of this.sims.high.byYear[this.year]) if (v > m) m = v;
+      leftScale = m * 1.05 || 1;
+    }
+
+    const log = this.cfg.logScale;
+    // Shared log floor: lowest non-zero wealth across both panels at this year (bars) or across all years (trajectories). Keeps both panels' log axes aligned.
+    const logMinNow = this.scale.logMinByYear[this.year];
+    const logMinAll = this.scale.logMinAll;
+    if (view === "bars") {
+      Chart.bars(this.el.canvasHigh, this.sims.high.byYear[this.year], leftScale, logMinNow, cHigh, log);
+      Chart.bars(this.el.canvasLow,  this.sims.low.byYear[this.year],  scaleNow,  logMinNow, cLow, log);
+    } else if (view === "pie") {
+      Chart.pieVsTypical(this.el.canvasHigh, this.sims.high.byYear, this.year, this.scale.pieMaxIndex, cHigh);
+      Chart.pieVsTypical(this.el.canvasLow,  this.sims.low.byYear,  this.year, this.scale.pieMaxIndex, cLow);
+    } else if (view === "trajectories") {
+      Chart.trajectories(this.el.canvasHigh, this.sims.high.byYear, this.year, leftScale, logMinAll, cHigh, log);
+      Chart.trajectories(this.el.canvasLow,  this.sims.low.byYear,  this.year, scaleNow,  logMinAll, cLow, log);
+    } else {
+      Chart.inequality(this.el.canvasHigh, this.series, this.year, { high: cHigh, low: cLow });
+      Chart.inequality(this.el.canvasLow,  this.series, this.year, { high: cHigh, low: cLow });
+    }
+
+    // Live stat readouts under each panel.
+    for (const [key, st, st1, tt, dp] of [
+      ["high", this.el.statHigh, this.el.stat1High, this.el.totHigh, this.el.dispHigh],
+      ["low",  this.el.statLow,  this.el.stat1Low,  this.el.totLow,  this.el.dispLow],
+    ]) {
+      const wealth = this.sims[key].byYear[this.year];
+      st.textContent  = fmt.pct(this.series[key].p10[this.year]);
+      st1.textContent = fmt.pct(this.series[key].p1[this.year]);
+      tt.textContent  = fmt.money(Stats.total(wealth));
+      const med = Stats.median(wealth);
+      const richest = wealth.reduce((a, b) => a > b ? a : b, 0);
+      dp.textContent = med > 0 ? Math.round(richest / med) + "×" : "—";
+    }
+  }
+};
+
+function getCss(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+App.init();
+</script>
+</body>
+</html>
