@@ -1,0 +1,8 @@
+# Source papers (copyrighted PDFs, kept locally only)
+sources/
+
+# Superseded page versions (kept locally; git history holds the committed ones)
+versions/
+
+# Local Claude Code settings
+.claude/
