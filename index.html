@@ -314,7 +314,7 @@
     <p class="note"><b>There is a critical <var>J</var> value above which the spread of wealth settles and below which it keeps growing</b> &mdash; the rich keep getting richer relative to everyone else. This critical point (<var>&mu;</var> = 2) depends solely on the volatility, which with the empirical value above gives <var>J</var><sub>c</sub> = <var>&sigma;</var><sup>2</sup>/2 = 1.9%. Today, we sit below this point; the mid-century was right at the threshold. The <em>spread of wealth</em> readout under each panel tracks this: it is the standard deviation of wealth divided by the average.<sup class="fn"><a href="#fn-c">c</a></sup></p>
     <p class="note"><b>"Typical" means the median household,</b> not the average/mean, which the very rich skew upward.
     <p class="note"><b>Why the two economy sizes (pies) differ.</b> Redistribution shuffles wealth around, it doesn't make or destroy any by itself, so averaged over many runs the two pies are exactly the same size. In any single run, though, they drift apart because growth is multiplicative: once a few hold most of the wealth, the whole economy's growth rides on them, including their luck. That makes the concentrated pie more volatile, and a more volatile pie usually ends up a little smaller (and occasionally much bigger), so in most runs it finishes behind the more equal one. [This is a small-sample effect: it shrinks as the number of households grows, and across a real country's millions of households it is negligible.]</p>
-    <p class="note"><b>Real-world approximation.</b> Adds wealth-dependent returns: richer households earn higher returns of approximately 2.8 percentage points more per year per order of magnitude of wealth <a href="https://doi.org/10.3982/ECTA14835" target="_blank" rel="noopener">[13]</a> [derived from the returns by wealth bracket reported there, not stated directly]. This is modelled as a <em>pure transfer</em>: total wealth is conserved each step, so what the wealthy gain in dollar terms comes directly out of everyone else's pockets, not from new growth.<sup class="fn"><a href="#fn-d">d</a></sup> It is motivated by Rognlie (2016) <a href="https://doi.org/10.1353/eca.2016.0002" target="_blank" rel="noopener">[14]</a> (the entire rise in the net capital share since 1948 comes from housing, driven by scarcity rather than new investment) and Stiglitz (2012) <a href="https://openlibrary.org/isbn/9780393088694" target="_blank" rel="noopener">[15]</a> (excess returns reflect rent-seeking, not wealth creation). With this on, the <var>&mu;</var> formula and era labels above no longer apply.<sup class="fn"><a href="#fn-e">e</a></sup></p>
+    <p class="note"><b>Real-world approximation.</b> Adds wealth-dependent returns: richer households earn higher returns of approximately 2.8 percentage points more per year per order of magnitude of wealth <a href="https://doi.org/10.3982/ECTA14835" target="_blank" rel="noopener">[13]</a> [derived from the returns by wealth bracket reported there, not stated directly]. This is modelled as a <em>pure transfer</em>: total wealth is conserved each step, so what the wealthy gain in dollar terms comes directly out of everyone else's pockets, not from new growth.<sup class="fn"><a href="#fn-d">d</a></sup> It is motivated by Rognlie (2016) <a href="https://doi.org/10.1353/eca.2016.0002" target="_blank" rel="noopener">[14]</a> (the entire rise in the net capital share since 1948 comes from housing, driven by scarcity rather than new investment) and Stiglitz (2012) <a href="https://openlibrary.org/isbn/9780393088694" target="_blank" rel="noopener">[15]</a> (excess returns reflect rent-seeking, not wealth creation). With this on, the <var>&mu;</var> formula and era labels above no longer apply.<sup class="fn"><a href="#fn-e">e</a></sup> It still gives every household the same volatility.<sup class="fn"><a href="#fn-f">f</a></sup></p>
     <p class="note"><b>If simulating the model beyond a normal lifetime</b>, read each household as a family line and the wealth as inherited, with a new generation roughly every 25 years (the "gen" count beside the year).</p>
     <ol class="footnotes" type="a">
       <li id="fn-a">The original paper <a href="https://doi.org/10.1016/S0378-4371(00)00205-3" target="_blank" rel="noopener">[1]</a> writes this as 1 + <var>J</var>/<var>&sigma;</var><sup>2</sup> because it defines the noise variance as 2<var>&sigma;</var><sup>2</sup>; here <var>&sigma;</var> is ordinary volatility.</li>
@@ -322,6 +322,7 @@
       <li id="fn-c">Below the threshold the spread climbs erratically, because it is driven by a handful of the very richest pulling away. The top 10% and top 1% shares level off on both sides of the threshold, just at a higher level the lower <var>J</var> is. The model is also slow to settle, roughly 1/<var>J</var> years, so most of a 100-year run is still the journey from the fairly equal starting point.</li>
       <li id="fn-d">This choice doesn't change the top shares (they come out the same if the extra return is new growth), but it does push the typical household and the whole economy lower, so read those two numbers as the pessimistic case.</li>
       <li id="fn-e">With this on, a household that gets far enough ahead earns enough extra to outrun redistribution and pulls away from everyone else. Whether and when that happens depends on luck, the number of households and how long you run it, so there is no fixed tipping point. The 2.8 points is also extended beyond the wealth range it was measured on, which exaggerates the effect for the very richest.</li>
+      <li id="fn-f">In reality, volatility is not the same for everyone, and the difference hurts the bottom half. Their wealth is mostly a thin slice of equity in a mortgaged home, while the richest mostly own shares and businesses <a href="https://doi.org/10.1086/708815" target="_blank" rel="noopener">[16]</a>, so a modest fall in house prices wipes out much of it. In the 2008 crash the bottom 50%'s net worth fell by over 80% and took until 2018 to recover, while the top 1%'s fell 21% and recovered by 2012 <a href="https://www.federalreserve.gov/releases/z1/dataviz/dfa/" target="_blank" rel="noopener">[10]</a>.</li>
     </ol>
   </details>
 
@@ -342,6 +343,7 @@
     <br>[13] A. Fagereng, L. Guiso, D. Malacrino, and L. Pistaferri, "Heterogeneity and Persistence in Returns to Wealth," <em>Econometrica</em>, vol. 88, no. 1, pp. 115-170, 2020. doi: <a href="https://doi.org/10.3982/ECTA14835" target="_blank" rel="noopener">10.3982/ECTA14835</a>
     <br>[14] M. Rognlie, "Deciphering the Fall and Rise in the Net Capital Share: Accumulation or Scarcity?" <em>Brookings Pap. Econ. Activity</em>, vol. 2015, no. 1, pp. 1-69, 2016. doi: <a href="https://doi.org/10.1353/eca.2016.0002" target="_blank" rel="noopener">10.1353/eca.2016.0002</a>
     <br>[15] J. E. Stiglitz, "Rent Seeking and the Making of an Unequal Society," in <em>The Price of Inequality: How Today's Divided Society Endangers Our Future</em>, New York: W. W. Norton, 2012, ch. 2. [Online]. Available: <a href="https://openlibrary.org/isbn/9780393088694" target="_blank" rel="noopener">openlibrary.org/isbn/9780393088694</a>
+    <br>[16] M. Kuhn, M. Schularick, and U. I. Steins, "Income and Wealth Inequality in America, 1949-2016," <em>J. Polit. Econ.</em>, vol. 128, no. 9, pp. 3469-3519, 2020. doi: <a href="https://doi.org/10.1086/708815" target="_blank" rel="noopener">10.1086/708815</a>
   </footer>
 
 </div>
@@ -1333,7 +1335,7 @@ function getCss(name) {
 
 // Footnote links: instead of jumping the note to the top of the window, scroll only as far as needed
 // to bring the bottom of the key box into view, then highlight the note for 10 s.
-const footnoteTimers = new Map();
+let footnoteTimer;
 document.querySelectorAll(".fn a").forEach(a => a.addEventListener("click", e => {
   const note = document.querySelector(a.getAttribute("href"));
   if (!note) return;
@@ -1342,9 +1344,10 @@ document.querySelectorAll(".fn a").forEach(a => a.addEventListener("click", e =>
   const below = note.closest(".key").getBoundingClientRect().bottom - window.innerHeight;
   if (below > 0) window.scrollBy({ top: below + 12, behavior: "smooth" });
 
-  clearTimeout(footnoteTimers.get(note));
+  clearTimeout(footnoteTimer);
+  document.querySelectorAll(".footnotes li.hl").forEach(li => li.classList.remove("hl"));   // only one highlight at a time
   note.classList.add("hl");
-  footnoteTimers.set(note, setTimeout(() => note.classList.remove("hl"), 10000));
+  footnoteTimer = setTimeout(() => note.classList.remove("hl"), 10000);
 }));
 
 App.init();
